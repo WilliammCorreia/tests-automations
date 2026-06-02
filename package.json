@@ -1,0 +1,37 @@
+{
+  "name": "tp1",
+  "version": "1.0.0",
+  "description": "TP1 du cours de tests et automatisations, portant sur les tests unitaires, le sujet est du TP est de faire une Todo List.",
+  "homepage": "https://github.com/WilliammCorreia/tests-automations#readme",
+  "bugs": {
+    "url": "https://github.com/WilliammCorreia/tests-automations/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/WilliammCorreia/tests-automations.git"
+  },
+  "license": "ISC",
+  "author": "willix",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "build": "npx tsc",
+    "start": "npm run build && node dist/server.js",
+    "dev": "npx tsx watch src/server.ts",
+    "test": "npx jest"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "mongoose": "^9.6.3",
+    "typescript": "^6.0.3"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/jest": "^30.0.0",
+    "@types/mongoose": "^5.11.96",
+    "@types/node": "^25.9.1",
+    "ts-jest": "^29.4.11",
+    "tsx": "^4.22.4"
+  }
+}
