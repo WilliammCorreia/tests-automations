@@ -1,5 +1,7 @@
-const User = require("../models/User");
-const Item = require("../models/Item");
+import User from "../models/User";
+import Item from "../models/Item";
+import userService from "../services/user.service";
+import emailSenderService from "../services/emailSender.service";
 
 const validUser = new User({ 
     email: "wemby@mvp.fr",
@@ -100,5 +102,38 @@ describe("Vérifie que la todo list soit correct", () => {
             item.content += "aaaaaaaaaaa";
         }
         expect(item.content.length).not.toBeLessThanOrEqual(1000);
+    });
+
+    test("sendEmail est appelé avec les bons arguments", async () => {
+        const spyEmail = jest.spyOn(emailSenderService, "sendEmail").mockResolvedValue();
+        
+        // On mock User.findById pour retourner un utilisateur avec une todoList de taille 7
+        const mockUser = {
+            email: validUser.email,
+            todoList: Array(7).fill({
+                name: "Ancien item",
+                content: "",
+                createdAt: new Date(Date.now() - 40 * 60000) // > 30 mins
+            }),
+            save: jest.fn().mockResolvedValue(true)
+        };
+
+        const spyFindById = jest.spyOn(User, "findById").mockReturnValue({
+            populate: jest.fn().mockResolvedValue(mockUser)
+        } as any);
+
+        const spyItemCreate = jest.spyOn(require("../services/item.service").default, "create")
+            .mockResolvedValue({ name: "Un item", content: "Un contenu", createdAt: new Date() });
+
+        // Appel à la méthode qui est censée déclencher l'envoi de l'email
+        await userService.addItem("fakeId", "Un item", "Un contenu");
+
+        // Vérification que mock a été appelé avec les bons arguments
+        expect(spyEmail).toHaveBeenCalledWith(validUser.email, "Votre todo list est presque pleine !");
+
+        // Restaurer les mocks
+        spyEmail.mockRestore();
+        spyFindById.mockRestore();
+        spyItemCreate.mockRestore();
     });
 });

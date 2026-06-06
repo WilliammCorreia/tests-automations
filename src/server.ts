@@ -19,6 +19,6 @@ app.listen(port, (): void => {
 });
 
 (async () => {
-  const res = await UserService.addItem("6a228c80c7ed7b7e02f7010c", "Gagner les finales NBA", "All I do is win, win, win, no matter what !");
+  const res = await UserService.addItem("6a23f827d02f2bc198d215b9", "< 30 min", "Spurs in 6 !");
   console.log("res : ", res);
 })()
