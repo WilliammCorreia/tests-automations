@@ -2,6 +2,9 @@ import User from "../models/User";
 import Item from "../models/Item";
 import userService from "../services/user.service";
 import emailSenderService from "../services/emailSender.service";
+import request from 'supertest';
+import app, { server } from "../server";
+import mongoose from 'mongoose';
 
 const validUser = new User({ 
     email: "wemby@mvp.fr",
@@ -16,7 +19,12 @@ const item = new Item({
     content: ""
 });
 
-beforeEach(() => {
+afterAll(async () => {
+    await mongoose.connection.close();
+    server.close();
+});
+
+beforeEach(async () => {
     validUser.email = "wemby@mvp.fr";
     validUser.lastname = "Wemby";
     validUser.firstname = "Victor";
@@ -107,13 +115,12 @@ describe("Vérifie que la todo list soit correct", () => {
     test("sendEmail est appelé avec les bons arguments", async () => {
         const spyEmail = jest.spyOn(emailSenderService, "sendEmail").mockResolvedValue();
         
-        // On mock User.findById pour retourner un utilisateur avec une todoList de taille 7
         const mockUser = {
             email: validUser.email,
             todoList: Array(7).fill({
                 name: "Ancien item",
                 content: "",
-                createdAt: new Date(Date.now() - 40 * 60000) // > 30 mins
+                createdAt: new Date(Date.now() - 40 * 60000)
             }),
             save: jest.fn().mockResolvedValue(true)
         };
@@ -125,15 +132,84 @@ describe("Vérifie que la todo list soit correct", () => {
         const spyItemCreate = jest.spyOn(require("../services/item.service").default, "create")
             .mockResolvedValue({ name: "Un item", content: "Un contenu", createdAt: new Date() });
 
-        // Appel à la méthode qui est censée déclencher l'envoi de l'email
         await userService.addItem("fakeId", "Un item", "Un contenu");
 
-        // Vérification que mock a été appelé avec les bons arguments
         expect(spyEmail).toHaveBeenCalledWith(validUser.email, "Votre todo list est presque pleine !");
 
-        // Restaurer les mocks
         spyEmail.mockRestore();
         spyFindById.mockRestore();
         spyItemCreate.mockRestore();
     });
 });
+
+describe("GET /ping", () => {
+    test('devrait retourer "pong"', async () => {
+        const res = await request(app).get("/ping");
+
+        expect(res.status).toBe(200);
+    });
+});
+
+describe("GET /api/users/", () => {
+    test('devrait retounrer un tableau dutilisateurs', async () => {
+        const res = await request(app).get("/api/users/");
+
+        expect(res.status).toBe(200);
+        expect(Array.isArray(res.body.data)).toBe(true);
+    });
+});
+
+describe("POST /api/users/", () => {
+    let testUser = validUser.toJSON();
+    testUser.email = "test.create." + Date.now() + "@test.fr";
+
+    test('devrait créer un nouvel utilisateur', async () => {
+        const res = await request(app).post("/api/users/").send(testUser);
+
+        expect(res.status).toBe(201);
+        expect(res.body.success).toBe(true);
+        expect(res.body.data.email).toBe(testUser.email);
+    });
+
+    test('devrait retourner une erreur si lemail est dzja utilisé', async () => {
+        const res = await request(app).post("/api/users/").send(testUser);
+
+        expect(res.status).toBe(400);
+        expect(res.body.success).toBe(false);
+        expect(res.body.error).toBe("Cet email est déjà utilisé");
+    });
+
+    test('devrait retourner une erreur si un champ est manquant', async () => {
+        const res = await request(app).post("/api/users/").send({
+            email: testUser.email,
+            lastname: testUser.lastname,
+            firstname: testUser.firstname,
+            password: testUser.password
+        });
+
+        expect(res.status).toBe(400);
+        expect(res.body.success).toBe(false);
+        expect(res.body.error).toBe("email, lastname, firstname, password et birthDate sont requis");
+    });
+});
+
+// describe("POST /api/users/addItem", () => {
+//     let newUser: any;
+//     beforeAll(async () => {
+//         await mongoose.connection.dropDatabase();
+//         newUser = await userService.create(validUser.email, validUser.lastname, validUser.firstname, validUser.password, validUser.birthDate);
+//     });
+
+//     test('devrait ajouter un item à la todo list de lutilisateur', async () => {
+//         const res = await request(app).post("/api/users/item").send({
+//             userId: newUser._id.toString(),
+//             name: "Un item",
+//             content: "Un contenu"
+//         });
+
+//         expect(res.status).toBe(200);
+//         expect(res.body.success).toBe(true);
+//         expect(res.body.data.todoList.length).toBe(1);
+//         expect(res.body.data.todoList[0].name).toBe("Un item");
+//     });
+// });
