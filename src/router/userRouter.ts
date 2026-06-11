@@ -3,7 +3,7 @@ import userController from "../controllers/user.controller";
 
 const router = express.Router();
 
-router.get('/regression', (req, res) => {
+router.get('/', (req, res) => {
     userController.getAll(req, res);
 });
 
